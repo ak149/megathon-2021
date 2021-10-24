@@ -122,9 +122,9 @@ while True:
                 y = int(centerY - (height / 2))
                 # update our list of bounding box coordinates,
                 # confidences, and class IDs
-                boxes.append([x, y, int(width), int(height)])
-                confidences.append(float(confidence))
-                classIDs.append(classID)
+                boxes.extend([[x, y, int(width), int(height)]])
+                confidences.extend([float(confidence)])
+                classIDs.extend([classID])
     # apply NMS to suppress weak, overlapping
     # bounding boxes
     idxs = cv2.dnn.NMSBoxes(
@@ -153,9 +153,9 @@ while True:
             (w, h) = (boxes[i][2], boxes[i][3])
             # draw a bounding box rectangle and label on the image
             if classIDs[i] == 1:
-                masked_rois.append([x, y, w, h])
+                masked_rois.extend([[x, y, w, h]])
             else:
-                non_masked_rois.append([x, y, w, h])
+                non_masked_rois.extend([[x, y, w, h]])
             color = [int(c) for c in COLORS[classIDs[i]]]
             cv2.rectangle(frame, (x, y), (x + w, y + h), color, 1)
             text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
