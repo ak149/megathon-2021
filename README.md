@@ -1,6 +1,7 @@
 # Face Mask Detector
 
 # Description
+Output CSV Files are in the output folder 
 
 # Input Videos
 - [Input Videos](https://www.youtube.com/playlist?list=PLEOgpsXy3CIqjKcKj9OWFBabJbAzCTrDu)
