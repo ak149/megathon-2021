@@ -1,39 +1,40 @@
 # import the necessary packages
 from imutils.video import FPS
 import numpy as np
-import argparse
-from datetime import datetime 
 import cv2
-import os
-import time
+import argparse
 import pandas as pd
-import pytz
+import os
 
-cols = ["Frame_No","Masked Count","Non-Masked Count","Masked ROIS","Non-Masked ROIS"]
-OUTPUT = pd.DataFrame(columns = cols)
-# it will get the time zone  
-# of the specified location 
-IST = pytz.timezone('Asia/Kolkata') 
-
+cols = ["Frame_No", "Masked Count", "Non-Masked Count",
+        "Masked ROIS", "Non-Masked ROIS"]
+OUTPUT = pd.DataFrame(data=None, index=None, columns=cols, copy=None)
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-y", "--yolo", required=True,help="base path to YOLO directory")
-ap.add_argument("-i", "--input", type=str, default="",help="path to (optional) input video file")
-ap.add_argument("-o", "--output", type=str, default="",help="path to (optional) output video file")
-ap.add_argument("-d", "--display", type=int, default=1,help="whether or not output frame should be displayed")
-ap.add_argument("-c", "--confidence", type=float, default=0.45,help="minimum probability to filter weak detections")
-ap.add_argument("-t", "--threshold", type=float, default=0.3,help="threshold when applying non-maxima suppression")
-ap.add_argument("-u", "--use-gpu", type=bool, default=0,help="boolean indicating if CUDA GPU should be used")
-args = vars(ap.parse_args())
+ap.add_argument("-d", "--display", type=int, default=1,
+                help="whether or not output frame should be displayed")
+ap.add_argument("-y", "--yolo", required=True,
+                help="base path to YOLO directory")
+ap.add_argument("-u", "--use-gpu", type=bool, default=0,
+                help="boolean indicating if CUDA GPU should be used")
+ap.add_argument("-c", "--confidence", type=float, default=0.45,
+                help="minimum probability to filter weak detections")
+ap.add_argument("-i", "--input", type=str, default="",
+                help="path to (optional) input video file")
+ap.add_argument("-o", "--output", type=str, default="",
+                help="path to (optional) output video file")
+ap.add_argument("-t", "--threshold", type=float, default=0.3,
+                help="threshold when applying non-maxima suppression")
 
+args = vars(ap.parse_args())
 
 # load the class labels our YOLO model was trained on
 labelsPath = os.path.sep.join([args["yolo"], "obj.names"])
 LABELS = open(labelsPath).read().strip().split("\n")
 
 # initialize a list of colors to represent each possible class label(red and green)
-COLORS = [[0,0,255],[0,255,0]]
+COLORS = [[0, 0, 255], [0, 255, 0]]
 
 # derive the paths to the YOLO weights and model configuration
 weightsPath = os.path.sep.join([args["yolo"], "yolov4_face_mask.weights"])
@@ -41,8 +42,6 @@ configPath = os.path.sep.join([args["yolo"], "yolov4-obj.cfg"])
 
 net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
 # check if we are going to use GPU
-
-
 
 # determine only the *output* layer names that we need from YOLO
 # print(net.getLayerNames())
@@ -78,7 +77,8 @@ while True:
     # construct a blob from the input frame and then perform a forward
     # pass of the YOLO object detector, giving us our bounding boxes
     # and associated probabilities
-    blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (224, 224),swapRB=True, crop=False)
+    blob = cv2.dnn.blobFromImage(
+        frame, 1 / 255.0, (224, 224), swapRB=True, crop=False)
     net.setInput(blob)
     layerOutputs = net.forward(ln[0])
     layerOutputs = [layerOutputs]
@@ -91,7 +91,7 @@ while True:
     classIDs = []
     # loop over each of the layer outputs
     i = 0
-    for output in layerOutputs :
+    for output in layerOutputs:
         # print(output.shape) with all layer_outputs (34992, 7)
         # print(output.shape)
         # loop over each of the detections
@@ -127,37 +127,40 @@ while True:
                 classIDs.append(classID)
     # apply NMS to suppress weak, overlapping
     # bounding boxes
-    idxs = cv2.dnn.NMSBoxes(boxes, confidences, args["confidence"],args["threshold"])
+    idxs = cv2.dnn.NMSBoxes(
+        boxes, confidences, args["confidence"], args["threshold"])
 
-    #Add top-border to frame to display stats
-    border_size=100
-    border_text_color=[255,255,255]
-    frame = cv2.copyMakeBorder(frame, border_size,0,0,0, cv2.BORDER_CONSTANT)
-    #calculate count values
-    filtered_classids=np.take(classIDs,idxs)
-    mask_count=(filtered_classids==1).sum()
-    nomask_count=(filtered_classids==0).sum()
+    # Add top-border to frame to display stats
+    border_size = 100
+    border_text_color = [255, 255, 255]
+    frame = cv2.copyMakeBorder(
+        frame, border_size, 0, 0, 0, cv2.BORDER_CONSTANT)
+    # calculate count values
+    filtered_classids = np.take(classIDs, idxs)
+    mask_count = (filtered_classids == 1).sum()
+    nomask_count = (filtered_classids == 0).sum()
 
     text = "NoMaskCount: {}  MaskCount: {}".format(nomask_count, mask_count)
-    cv2.putText(frame,text, (5, int(border_size-50)), cv2.FONT_HERSHEY_SIMPLEX,0.65,border_text_color, 2)
+    cv2.putText(frame, text, (5, int(border_size-50)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.65, border_text_color, 2)
 
-    
     if len(idxs) > 0:
         # loop over the indexes we are keeping
         for i in idxs.flatten():
-            
+
             # extract the bounding box coordinates
             (x, y) = (boxes[i][0], boxes[i][1]+border_size)
             (w, h) = (boxes[i][2], boxes[i][3])
             # draw a bounding box rectangle and label on the image
             if classIDs[i] == 1:
-                masked_rois.append([x,y,w,h])
+                masked_rois.append([x, y, w, h])
             else:
-                non_masked_rois.append([x,y,w,h])
+                non_masked_rois.append([x, y, w, h])
             color = [int(c) for c in COLORS[classIDs[i]]]
             cv2.rectangle(frame, (x, y), (x + w, y + h), color, 1)
             text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
-            cv2.putText(frame, text, (x, y-5), cv2.FONT_HERSHEY_SIMPLEX,0.5, color, 1)
+            cv2.putText(frame, text, (x, y-5),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
     # check to see if the output frame should be displayed to our
     # screen
@@ -173,16 +176,18 @@ while True:
     if args["output"] != "" and writer is None:
         # initialize our video writer
         fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-        writer = cv2.VideoWriter(args["output"], fourcc, 24,(frame.shape[1], frame.shape[0]), True)
+        writer = cv2.VideoWriter(
+            args["output"], fourcc, 24, (frame.shape[1], frame.shape[0]), True)
     # if the video writer is not None, write the frame to the output
     # video file
     if writer is not None:
         writer.write(frame)
     # update the FPS counter
 
-    df = {"Frame_No" : frame_no,"Masked Count":mask_count,"Non-Masked Count":nomask_count,"Masked ROIS":masked_rois,"Non-Masked ROIS":non_masked_rois};
+    df = {"Frame_No": frame_no, "Masked Count": mask_count, "Non-Masked Count": nomask_count,
+          "Masked ROIS": masked_rois, "Non-Masked ROIS": non_masked_rois}
     # print(df)
-    OUTPUT = OUTPUT.append(df,ignore_index = True)
+    OUTPUT = OUTPUT.append(df, ignore_index=True)
     frame_no += 1
     fps.update()
 # stop the timer and display FPS information
@@ -191,4 +196,4 @@ print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
 print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
 name = args["input"].split(".")[0].split("/")[1]
-OUTPUT.to_csv(f"./output/{name}.csv",index = False)
+OUTPUT.to_csv(f"./output/{name}.csv", index=False)
