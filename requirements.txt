@@ -1,0 +1,10 @@
+opencv-python==4.5.4.58
+imutils
+numpy
+argparse
+datetime
+time
+pandas
+cv2
+os
+pytz
